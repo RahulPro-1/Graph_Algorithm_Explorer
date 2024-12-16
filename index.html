@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Graph Algorithm Explorer</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    img{
+      width:300px;
+      height:300px;
+
+    }
+    header {
+      height:100px;
+      display:flex;
+      text-align: center;
+      justify-content: center;
+      align-items: center;
+      gap:75px;
+      background-size:cover;
+      background-position: center center; 
+      color:black;
+      padding: 20px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    #controls {
+      margin: 15px 0;
+    }
+
+    #controls button, #controls select {
+      padding: 10px 15px;
+      margin: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #d {
+        display:flex;
+        text-align: center;
+        justify-content: center;
+    }
+    #res {
+        height:35px;
+        width:590px;
+        padding-bottom: 15px;
+        font-size:20px;
+        color:white;
+        background-color: #000000;
+    }
+    #algorithm{
+      background-color: #000000;
+      color:aliceblue;
+      
+    }
+
+    button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #graphCanvas {
+      /* border: 1px solid #ccc; */
+      display: block;
+      margin: 20px auto;
+      background-color:rgba(219, 250, 185, 0.953);
+      border:3px solid black;
+      border-radius: 10px;
+    }
+
+    footer {
+      background-color: #6a0101;
+      color: white;
+      padding: 10px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div id="img">
+    <img src="graph_2.jpg">
+    </div>
+    <div id="hed">
+    <h1>Graph Algorithm Explorer</h1>
+    <p>Visualize and interact with graph algorithms</p>
+    <p>For connected graphs </p>
+  </div>
+  </header>
+
+  <div id="controls">
+    <button onclick="addNode()">Add Node</button>
+    <button onclick="connectNodes()">Add Edge</button>
+    <select id="algorithm">
+      <option value="prim">Minimum Spanning tree</option>
+      <option value="dfs">Depth-First Search (DFS)</option>
+      <option value="dijkstra">Dijkstra's Algorithm</option>
+      <option value="bfs">Breadth-First Search</option>
+      <option value="euler">euler's Algorithm</option>
+      
+    </select>
+    <button onclick="runAlgorithm()">Run Algorithm</button>
+    <button onclick="clearGraph()">Clear Graph</button>
+  </div>
+  <div id="d">
+  <div id="res">
+    <h4>Result/Sequence Will be Display here....</h4>
+  </div>
+  </div>
+  <canvas id="graphCanvas" width="800" height="600"></canvas>
+
+  <footer>
+    <p>Created by Mahesh Patil</p>
+  </footer>
+
+  <script>
+    let res1=document.getElementById("res");
+    const canvas = document.getElementById("graphCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let graph = {
+      nodes: [],
+      edges: [],
+      adjacencyList: {},
+    };
+
+    function addNode() {
+      const id = graph.nodes.length;
+      const x = (Math.random() * canvas.width)*0.70;
+      const y = (Math.random() * canvas.height)*0.70;
+      graph.nodes.push({ id, x, y });
+      graph.adjacencyList[id] = [];
+      renderGraph();
+    }
+
+    function connectNodes() {
+      if (graph.nodes.length < 2) {
+        alert("Add at least two nodes to create an edge!");
+        return;
+      }
+      const start = prompt("Enter start node ID:");
+      const end = prompt("Enter end node ID:");
+      const weight = parseInt(prompt("Enter edge weight:", "1"), 10) || 1;
+
+      const startNode = graph.nodes.find((n) => n.id == start);
+      const endNode = graph.nodes.find((n) => n.id == end);
+
+      if (!startNode || !endNode) {
+        alert("Invalid node IDs!");
+        return;
+      }
+
+      graph.edges.push({ start, end, weight });
+      graph.adjacencyList[start].push({ node: parseInt(end), weight });
+      graph.adjacencyList[end].push({ node: parseInt(start), weight }); // Undirected graph
+      renderGraph();
+    }
+
+    function renderGraph() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      graph.edges.forEach((edge) => {
+        const startNode = graph.nodes.find((n) => n.id == edge.start);
+        const endNode = graph.nodes.find((n) => n.id == edge.end);
+        ctx.beginPath();
+        ctx.lineWidth=2;
+        ctx.font="20px Arial";
+        
+        ctx.moveTo(startNode.x, startNode.y);
+        ctx.lineTo(endNode.x, endNode.y);
+        ctx.strokeStyle = "#000000";
+        ctx.stroke();
+        ctx.fillStyle = "#000000";
+        ctx.fillText(edge.weight, (startNode.x + endNode.x) / 2, (startNode.y + endNode.y) / 2);
+      });
+
+      graph.nodes.forEach((node) => {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 20, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#000000";
+        ctx.fillText(node.id, node.x - 5, node.y + 5);
+      });
+    }
+
+    function bfs(startNode) {
+      const visited = new Set();
+      const queue = [startNode];
+      const steps = [];
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        if (!visited.has(current)) {
+          visited.add(current);
+          steps.push(current);
+          graph.adjacencyList[current].forEach((neighbor) => {
+            if (!visited.has(neighbor.node)) {
+              queue.push(neighbor.node);
+            }
+          });
+        }
+      }
+    
+      return steps;
+    }
+
+    function dfs(startNode, visited = new Set(), steps = []) {
+      if (visited.has(startNode)) return;
+      visited.add(startNode);
+      steps.push(startNode);
+
+      graph.adjacencyList[startNode].forEach((neighbor) => {
+        dfs(neighbor.node, visited, steps);
+      });
+
+      return steps;
+    }
+
+    function dijkstra(startNode) {
+      const distances = {};
+      const visited = new Set();
+      const priorityQueue = [{ node: startNode, distance: 0 }];
+
+      graph.nodes.forEach((node) => (distances[node.id] = Infinity));
+      distances[startNode] = 0;
+
+      while (priorityQueue.length > 0) {
+        const { node: currentNode, distance: currentDistance } = priorityQueue.shift();
+        if (visited.has(currentNode)) continue;
+
+        visited.add(currentNode);
+
+        graph.adjacencyList[currentNode].forEach((neighbor) => {
+          const weight = neighbor.weight || 1;
+          const newDistance = currentDistance + weight;
+
+          if (newDistance < distances[neighbor.node]) {
+            distances[neighbor.node] = newDistance;
+            priorityQueue.push({ node: neighbor.node, distance: newDistance });
+          }
+        });
+
+        priorityQueue.sort((a, b) => a.distance - b.distance);
+      }
+
+      return distances;
+    };
+
+    function prims(startNode){
+      const mst = {};
+      const parent={};
+      graph.nodes.forEach((node)=> {
+        mst[node.id]=0;
+        parent[node.id]=null;
+     });
+      const priority=[{ weight:0, start:startNode, end:null}];
+      // graph.edges.forEach((edge)=>
+      // (priority.push({weight:edge.weight,start:edge.start,end:edge.end})
+      // ));
+      while(priority.length>0){
+        const{weight:cw, start: cs,end :ce}=priority.shift();
+        if(mst[cs]==1){
+          continue;
+        }
+        
+          mst[cs]=1;
+          parent[cs]=ce;
+        
+        graph.adjacencyList[cs].forEach((neighbor)=>{
+          const wt = neighbor.weight;
+          const newNode=neighbor.node;
+          if(mst[newNode]===0){
+            priority.push({weight:wt,start:newNode,end:cs});
+          }
+      });
+        priority.sort((a, b) => a.weight - b.weight);
+      }
+      //return parent;
+      
+      drawMst(parent);
+      //return parent;
+    };
+    function drawMst(parent){
+      Object.keys(parent).forEach((key)=>{
+           if(parent[key]!==null){
+           const parentNode=parent[key];
+           
+            
+        const st=graph.nodes.find((n) =>(n.id===parseInt(parentNode)));
+        const en=graph.nodes.find((n)=>(n.id===parseInt(key)));
+        if(st && en){
+        ctx.beginPath();
+        ctx.moveTo(st.x,st.y);
+        ctx.lineTo(en.x,en.y);
+        ctx.strokeStyle = "#FF0000";
+        ctx.stroke();
+        }
+      }
+    })
+  }
+  
+  function euler(startNode){
+    const indeg=new Array(graph.nodes.length).fill(0);
+
+    graph.nodes.forEach((node)=>{
+      graph.adjacencyList[node.id].forEach((neighbor)=>{
+        indeg[node.id]++;
+      })
+      }
+  )
+    let item=0;
+    indeg.forEach((key)=>{
+      if(key%2!==0){
+        item++;
+      }
+    }
+  )
+    if(item===0){
+      res1.innerText="euler circuit and path exist";
+    }
+    else if(item===2){
+      res1.innerText="euler path exist";
+    }
+    else{
+      res1.innerText="No euler circuit and path exist";
+    }
+  }
+
+
+      
+
+
+
+
+
+    
+    function runAlgorithm() {
+      const algorithm = document.getElementById("algorithm").value;
+      const startNode = parseInt(prompt("Enter start node ID:"), 10);
+      if (!graph.nodes.find((n) => n.id === startNode)) {
+        alert("Invalid start node ID!");
+        return;
+      }
+
+      let result;
+      if (algorithm === "bfs") {
+        result = bfs(startNode);
+      } else if (algorithm === "dfs") {
+        result = dfs(startNode);
+      } else if (algorithm === "dijkstra") {
+        result = dijkstra(startNode);
+      } else if(algorithm === "prim") {
+        result = prims(startNode);
+      }else if(algorithm === "euler") {
+        result = euler(startNode);
+      }
+
+      if (result) {
+        //alert(`Algorithm Result: ${JSON.stringify(result)}`);
+        res1.innerText=JSON.stringify(result);
+      }
+    }
+
+    function clearGraph() {
+      graph = { nodes: [], edges: [], adjacencyList: {} };
+      renderGraph();
+    }
+  </script>
+</body>
+</html>
